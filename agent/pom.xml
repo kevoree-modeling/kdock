@@ -18,6 +18,16 @@
             <artifactId>minimal-json</artifactId>
             <version>0.9.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.kevoree.modeling.plugin</groupId>
+            <artifactId>websocket</artifactId>
+            <version>${leveldb.plugin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kevoree.modeling.kdock</groupId>
+            <artifactId>model</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -6,8 +6,11 @@ package kdock;
 public class RestAgentTest {
 
     public static void main(String[] args) {
-        RestAgent agent = new RestAgent("localhost","http://kloud1:4243");
+        RestAgent agent = new RestAgent("ws://192.168.25.35:8080/default","http://kloud1:4243");
         agent.start();
+
+        RestAgent agent2 = new RestAgent("ws://192.168.25.35:8080/default","http://kloud2:4243");
+        agent2.start();
     }
 
 }

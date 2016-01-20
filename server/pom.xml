@@ -12,10 +12,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <properties>
-        <leveldb.plugin.version>4.27.0</leveldb.plugin.version>
-        <log.version>1</log.version>
-    </properties>
 
     <build>
         <plugins>
