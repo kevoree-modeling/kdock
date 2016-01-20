@@ -10,25 +10,71 @@
     <![endif]-->
 </head>
 <body>
+<link rel="stylesheet" href="uikit-2.24.3/css/uikit.min.css"/>
+<script src="uikit-2.24.3/js/jquery-2.2.0.js"></script>
+<script src="uikit-2.24.3/js/uikit.min.js"></script>
 <script src="lib/model.js"></script>
 <script src="lib/plugin.websocket.js"></script>
+
+
+
 <script>
     var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
     var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
-    model.connect(function(){
+    model.connect(function () {
         console.log("Dashboard connected!");
         var context = model.createModelContext();
         var date = new Date();
-        context.set(date.getMilliseconds(),date.getMilliseconds(),0,0);
-        refresh(model,context);
+        var current = date.getTime();
+        context.set(current, current, 0, 0);
+        refresh(model, context);
     });
-    function refresh(model,ctx){
+    function refresh(model, ctx) {
+        model.findAll(kdock.meta.MetaHost.getInstance(), 0, ctx.originTime(), function (hosts) {
+            hosts.forEach(function(host){
+                var hostDom = document.createElement('div');
+                $("#content").append(hostDom);
+                var hostDomTitle = document.createElement('h1');
+                hostDomTitle.innerHTML = host.getName();
+                hostDom.appendChild(hostDomTitle);
+                host.traversal().traverse(kdock.meta.MetaHost.REL_CONTAINERS).then(function (containers) {
+                    //loop over containers
+                    containers.forEach(function(container){
+                        var containerDom = document.createElement('div');
+                        hostDom.appendChild(containerDom);
+                        var containerDomTitle = document.createElement('h2');
+                        containerDomTitle.innerHTML = container.getName();
+                        containerDom.appendChild(containerDomTitle);
 
-        console.log(kdock.meta.MetaHost.getInstance().metaName());
-        model.findAll(kdock.meta.MetaHost.getInstance(), 0, ctx.originTime(), function(hosts){
-            console.log(hosts);
+                        //loop over metrics
+                        container.traversal().traverse(kdock.meta.MetaContainer.REL_METRICS).then(function(metrics){
+                            metrics.forEach(function(metric){
+
+                                var metricTitle = document.createElement('h3');
+                                metricTitle.innerHTML = metric.getName() +' '+metric.getValue();
+                                containerDom.appendChild(metricTitle);
+
+                            })
+                        });
+                    });
+
+                });
+            });
+
+
+            //loop over hosts
+            for (var i in hosts) {
+
+
+
+
+            }
         });
     }
 </script>
+
+
+<div id='content'></div>
+
 </body>
 </html>
