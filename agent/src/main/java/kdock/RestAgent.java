@@ -58,13 +58,13 @@ public class RestAgent {
                             }
                         });
                     }
-                }, 1, 1, TimeUnit.SECONDS);
+                }, 1, 5, TimeUnit.SECONDS);
             }
         });
     }
 
     private void updateHostInfos() {
-        System.out.println("Update host");
+        System.out.println("Update host: " + _targetHost);
         long currentTs = System.currentTimeMillis();
         JsonObject infos = getHostInfo();
 
@@ -92,41 +92,82 @@ public class RestAgent {
 
                             Container container;
 
-                            if(kObjects.length == 0) {
+                            if (kObjects.length == 0) {
                                 container = model.createContainer(0, currentTs).setId(containerInfos.get("Id").asString()).setName(containerInfos.get("Names").asArray().get(0).asString());
                                 h.addContainers(container);
                             } else {
-                                container = (Container)kObjects[0];
+                                container = (Container) kObjects[0];
                             }
 
-                            JsonObject metrics = getContainerMetrics(container.getName());
-                            updateMetrics(metrics, container, currentTs);
+                            JsonObject json = getContainerMetrics(container.getName());
+
+                            updateSubMetrics(json, container, currentTs);
+
                         }
+
                     });
                 }
             }
+
         });
+
     }
 
-    private void updateMetrics(JsonObject metrics, Container container, long currentTs) {
-        for(String name : metrics.names()) {
+    private void updateSubMetrics(JsonObject json, KObject metric, long currentTs) {
+        for (String name : json.names()) {
+            metric.traversal().traverse(MetaMetric.REL_METRICS).withAttribute(MetaMetric.ATT_NAME, name).then(new KCallback<KObject[]>() {
+                @Override
+                public void on(KObject[] kObjects) {
+                    Metric m;
+                    try {
+                        if (kObjects.length == 0) {
+                            m = model.createMetric(0, currentTs).setName(name);
+                            metric.addByName("metrics", m);
+                        } else {
+                            m = (Metric) kObjects[0];
+                        }
 
-            if(metrics.get(name).isObject()) {
-                updateMetrics(metrics.get(name).asObject(), container, currentTs);
+                        if (json.get(name).isObject()) {
+                            updateSubMetrics(json.get(name).asObject(), m, currentTs);
+                        } else if (json.get(name).isArray()) {
+                            updateSubMetrics(json.get(name).asArray(), m, currentTs);
+                        } else {
+                            m.setValue(json.get(name).asDouble());
+                        }
+
+                    } catch (UnsupportedOperationException e) {
+                        System.err.println("Could not convert attribute '" + name + "' to number: " + json.get(name));
+                    }
+                }
+            });
+        }
+    }
+
+    private void updateSubMetrics(JsonArray json, Metric metric, long currentTs) {
+        for (int i = 0; i < json.size(); i++) {
+            JsonValue val = json.get(i);
+
+            if (val.isObject()) {
+                updateSubMetrics(val.asObject(), metric, currentTs);
+            } else if (val.isArray()) {
+                updateSubMetrics(val.asArray(), metric, currentTs);
             } else {
-                container.traversal().traverse(MetaContainer.REL_METRICS).withAttribute(MetaMetric.ATT_NAME,name).then(new KCallback<KObject[]>() {
+                final int finalI = i;
+                metric.traversal().traverse(MetaMetric.REL_METRICS).withAttribute(MetaMetric.ATT_NAME, metric.getName() + "_" + i).then(new KCallback<KObject[]>() {
                     @Override
                     public void on(KObject[] kObjects) {
                         Metric m;
                         try {
                             if (kObjects.length == 0) {
-                                m = model.createMetric(0, currentTs).setName(name).setValue(metrics.get(name).asDouble());
-                                container.addMetrics(m);
+                                m = model.createMetric(0, currentTs).setName(metric.getName() + "_" + finalI);
+                                metric.addMetrics(m);
                             } else {
-                                m = model.createMetric(0, currentTs).setName(name).setValue(metrics.get(name).asDouble());
+                                m = (Metric) kObjects[0];
                             }
-                        }catch(UnsupportedOperationException e) {
-                            System.err.println("Could not convert attribute '" + name + "' to number: " + metrics.get(name));
+                            m.setValue(val.asDouble());
+
+                        } catch (UnsupportedOperationException e) {
+                            System.err.println("Could not convert attribute '" + metric.getName() + "_" + finalI + "' to number: " + val);
                         }
                     }
                 });
@@ -145,7 +186,7 @@ public class RestAgent {
     }
 
     private JsonObject getContainerMetrics(String name) {
-        return getJsonObject(_targetHost + "/containers"+name+"/stats?stream=0");
+        return getJsonObject(_targetHost + "/containers" + name + "/stats?stream=0");
     }
 
     private JsonObject getJsonObject(String url_src) {
@@ -168,7 +209,6 @@ public class RestAgent {
             return JsonObject.readFrom("{failed:\"" + e.getMessage() + "\"}");
         }
     }
-
 
 
     private JsonArray getJsonArray(String url_src) {
