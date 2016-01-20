@@ -7,6 +7,7 @@
 
     <properties>
         <java2typescript.plugin.version>47</java2typescript.plugin.version>
+        <websocket.plugin.version>4.27.0</websocket.plugin.version>
     </properties>
 
     <parent>
@@ -30,7 +31,7 @@
                             <goal>extract</goal>
                         </goals>
                         <configuration>
-                            <target>${project.build.outputDirectory}</target>
+                            <target>${basedir}/lib</target>
                         </configuration>
                     </execution>
                 </executions>
@@ -44,6 +45,13 @@
             <artifactId>model</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Plugins -->
+        <dependency>
+            <groupId>org.kevoree.modeling.plugin</groupId>
+            <artifactId>websocket</artifactId>
+            <version>${websocket.plugin.version}</version>
+        </dependency>
+
     </dependencies>
 
 </project>

@@ -26,6 +26,7 @@
                         </goals>
                         <configuration>
                             <metaModelFile>kdock.mm</metaModelFile>
+                            <js>true</js>
                         </configuration>
                     </execution>
                 </executions>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>KDock Dashboard</title>
+    <meta name="description" content="KDock Dashboard">
+    <meta name="author" content="KevoreeCrew">
+    <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+</head>
+<body>
+<script src="lib/model.js"></script>
+<script src="lib/plugin.websocket.js"></script>
+<script>
+    var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
+    var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
+    model.connect(function(){
+        console.log("Dashboard connected!");
+        var context = model.createModelContext();
+        var date = new Date();
+        context.set(date.getMilliseconds(),date.getMilliseconds(),0,0);
+        refresh(model,context);
+    });
+    function refresh(model,ctx){
+
+        console.log(kdock.meta.MetaHost.getInstance().metaName());
+        model.findAll(kdock.meta.MetaHost.getInstance(), 0, ctx.originTime(), function(hosts){
+            console.log(hosts);
+        });
+    }
+</script>
+</body>
+</html>
