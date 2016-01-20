@@ -136,7 +136,7 @@ public class RestAgent {
                         }
 
                     } catch (UnsupportedOperationException e) {
-                        System.err.println("Could not convert attribute '" + name + "' to number: " + json.get(name));
+                        System.err.println("Obj->Could not convert attribute '" + name + "' to number: " + json.get(name));
                     }
                 }
             });
@@ -167,7 +167,7 @@ public class RestAgent {
                             m.setValue(val.asDouble());
 
                         } catch (UnsupportedOperationException e) {
-                            System.err.println("Could not convert attribute '" + metric.getName() + "_" + finalI + "' to number: " + val);
+                            System.err.println("Array->Could not convert attribute '" + metric.getName() + "_" + finalI + "' to number: " + val);
                         }
                     }
                 });
