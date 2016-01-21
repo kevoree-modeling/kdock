@@ -8,16 +8,20 @@
     <!--[if lt IE 9]>
     <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <link rel="stylesheet" href="uikit-2.24.3/css/uikit.min.css"/>
+    <script src="uikit-2.24.3/js/jquery-2.2.0.js"></script>
+    <script src="uikit-2.24.3/js/uikit.min.js"></script>
+
+    <link rel="stylesheet" href="uikit-2.24.3/css/components/nestable.min.css"/>
+    <script src="uikit-2.24.3/js/components/nestable.js"></script>
+
+    <script src="lib/model.js"></script>
+    <script src="lib/plugin.websocket.js"></script>
 </head>
 <body>
-<link rel="stylesheet" href="uikit-2.24.3/css/uikit.min.css"/>
-<script src="uikit-2.24.3/js/jquery-2.2.0.js"></script>
-<script src="uikit-2.24.3/js/uikit.min.js"></script>
-<script src="lib/model.js"></script>
-<script src="lib/plugin.websocket.js"></script>
-
-
-
+<div class="uk-conatiner uk-container-center">
+    <ul class="uk-nestable" data-uk-nestable id='content'></ul>
+</div>
 <script>
     var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
     var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
@@ -27,54 +31,112 @@
         var date = new Date();
         var current = date.getTime();
         context.set(current, current, 0, 0);
-        refresh(model, context);
+        updateHosts(model, context);
     });
-    function refresh(model, ctx) {
+
+    function updateHosts(model, ctx) {
         model.findAll(kdock.meta.MetaHost.getInstance(), 0, ctx.originTime(), function (hosts) {
-            hosts.forEach(function(host){
-                var hostDom = document.createElement('div');
+            hosts.forEach(function (host) {
+                var hostDom = document.createElement('li');
+                $(hostDom).addClass("uk-nestable-item uk-parent");
                 $("#content").append(hostDom);
-                var hostDomTitle = document.createElement('h1');
-                hostDomTitle.innerHTML = host.getName();
-                hostDom.appendChild(hostDomTitle);
-                host.traversal().traverse(kdock.meta.MetaHost.REL_CONTAINERS).then(function (containers) {
-                    //loop over containers
-                    containers.forEach(function(container){
-                        var containerDom = document.createElement('div');
-                        hostDom.appendChild(containerDom);
-                        var containerDomTitle = document.createElement('h2');
-                        containerDomTitle.innerHTML = container.getName();
-                        containerDom.appendChild(containerDomTitle);
 
-                        //loop over metrics
-                        container.traversal().traverse(kdock.meta.MetaContainer.REL_METRICS).then(function(metrics){
-                            metrics.forEach(function(metric){
+                var hostDomPanel = document.createElement('div');
+                $(hostDomPanel).addClass("uk-nestable-panel");
+                hostDom.appendChild(hostDomPanel);
 
-                                var metricTitle = document.createElement('h3');
-                                metricTitle.innerHTML = metric.getName() +' '+metric.getValue();
-                                containerDom.appendChild(metricTitle);
+                var hostDomI = document.createElement('div');
+                $(hostDomI).addClass("uk-nestable-toggle");
+                hostDomI.setAttribute('data-nestable-action', "toggle");
+                hostDomPanel.appendChild(hostDomI);
+                //hostDomPanel.innerHTML += host.getName();
 
-                            })
-                        });
-                    });
+                var hostDomTitle = document.createElement('span');
+                hostDomTitle.innerHTML = "&nbsp;&nbsp; Host: " + host.getName();
+                hostDomPanel.appendChild(hostDomTitle);
 
-                });
+                var containersUlDom = document.createElement('ul');
+                $(containersUlDom).addClass("uk-nestable-list");
+                //containersUlDom.setAttribute('data-uk-nestable',"");
+                hostDom.appendChild(containersUlDom);
+
+                updateContainers(model, ctx, host, containersUlDom);
             });
 
-
-            //loop over hosts
-            for (var i in hosts) {
-
-
-
-
-            }
         });
+
+        function updateContainers(model, ctx, host, containersUlDom) {
+            host.traversal().traverse(kdock.meta.MetaHost.REL_CONTAINERS).then(function (containers) {
+                //loop over containers
+                containers.forEach(function (container) {
+
+                    var containerDom = document.createElement('li');
+                    $(containerDom).addClass("uk-nestable-item uk-parent");
+                    containersUlDom.appendChild(containerDom);
+
+                    var containerDomPanel = document.createElement('div');
+                    $(containerDomPanel).addClass("uk-nestable-panel");
+                    containerDom.appendChild(containerDomPanel);
+
+                    var containerDomI = document.createElement('div');
+                    $(containerDomI).addClass("uk-nestable-toggle");
+                    containerDomI.setAttribute('data-nestable-action', "toggle");
+                    containerDomPanel.appendChild(containerDomI);
+
+                    var containerDomTitle = document.createElement('span');
+                    containerDomTitle.innerHTML = "&nbsp;&nbsp; Container: " + container.getName();
+                    containerDomPanel.appendChild(containerDomTitle);
+
+                    var metricsUlDom = document.createElement('ul');
+                    $(metricsUlDom).addClass("uk-nestable-list");
+                    //metricsUlDom.setAttribute('data-uk-nestable',"");
+                    containerDom.appendChild(metricsUlDom);
+
+                    updateMetrics(model, ctx, container, metricsUlDom)
+                });
+
+            });
+        }
+
+        function updateMetrics(model, ctx, container, metricsUlDom) {
+            //loop over metrics
+
+            container.getRelationByName("metrics", function (metrics) {
+                metrics.forEach(function (metric) {
+
+                    var metricDom = document.createElement('li');
+                    $(metricDom).addClass("uk-nestable-item uk-parent uk-collapsed");
+                    metricsUlDom.appendChild(metricDom);
+
+                    var metricsDomPanel = document.createElement('div');
+                    $(metricsDomPanel).addClass("uk-nestable-panel");
+                    metricDom.appendChild(metricsDomPanel);
+
+                    if (metric.sizeOfMetrics() != 0) {
+                        var metricDomI = document.createElement('div');
+                        $(metricDomI).addClass("uk-nestable-toggle");
+                        metricDomI.setAttribute('data-nestable-action', "toggle");
+                        metricsDomPanel.appendChild(metricDomI);
+                    }
+
+                    var metricDomTitle = document.createElement('span');
+                    metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' ' + metric.getValue();
+                    metricsDomPanel.appendChild(metricDomTitle);
+
+                    if (metric.sizeOfMetrics() != 0) {
+                        var subMetricsUlDom = document.createElement('ul');
+                        $(subMetricsUlDom).addClass("uk-nestable-list");
+                        metricDom.appendChild(subMetricsUlDom);
+
+                        updateMetrics(model, ctx, metric, subMetricsUlDom);
+                    }
+                })
+            });
+        }
+
     }
 </script>
 
-
-<div id='content'></div>
 
 </body>
 </html>

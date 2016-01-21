@@ -8,14 +8,12 @@ import kdock.meta.MetaHost;
 import kdock.meta.MetaMetric;
 import org.kevoree.modeling.KCallback;
 import org.kevoree.modeling.KObject;
-import org.kevoree.modeling.defer.KDefer;
 import org.kevoree.modeling.memory.manager.DataManagerBuilder;
 import org.kevoree.modeling.plugin.WebSocketClientPlugin;
 
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -115,6 +113,7 @@ public class RestAgent {
 
     private void updateSubMetrics(JsonObject json, KObject metric, long currentTs) {
         for (String name : json.names()) {
+
             metric.traversal().traverse(MetaMetric.REL_METRICS).withAttribute(MetaMetric.ATT_NAME, name).then(new KCallback<KObject[]>() {
                 @Override
                 public void on(KObject[] kObjects) {
@@ -132,11 +131,12 @@ public class RestAgent {
                         } else if (json.get(name).isArray()) {
                             updateSubMetrics(json.get(name).asArray(), m, currentTs);
                         } else {
+                            System.out.println("inserted value: '"+json.get(name).asDouble()+"' for metric " + name);
                             m.setValue(json.get(name).asDouble());
                         }
 
                     } catch (UnsupportedOperationException e) {
-                        System.err.println("Obj->Could not convert attribute '" + name + "' to number: " + json.get(name));
+                        System.err.println("Obj-> On '"+name+"' Could not convert attribute '" + name + "' to number: " + json.get(name));
                     }
                 }
             });
