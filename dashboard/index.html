@@ -105,7 +105,8 @@
                 metrics.forEach(function (metric) {
 
                     var metricDom = document.createElement('li');
-                    $(metricDom).addClass("uk-nestable-item uk-parent uk-collapsed");
+                    $(metricDom).addClass("uk-nestable-item uk-parent");
+                    //$(metricDom).addClass("uk-collapsed");
                     metricsUlDom.appendChild(metricDom);
 
                     var metricsDomPanel = document.createElement('div');

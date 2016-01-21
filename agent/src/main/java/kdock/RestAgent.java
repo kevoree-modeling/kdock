@@ -49,6 +49,11 @@ public class RestAgent {
                     @Override
                     public void run() {
                         updateHostInfos();
+                    }
+                }, 1, 20, TimeUnit.SECONDS);
+                executor.scheduleAtFixedRate(new Runnable() {
+                    @Override
+                    public void run() {
                         model.save(new KCallback() {
                             @Override
                             public void on(Object o) {
@@ -56,13 +61,13 @@ public class RestAgent {
                             }
                         });
                     }
-                }, 1, 5, TimeUnit.SECONDS);
+                }, 10, 1, TimeUnit.SECONDS);
             }
         });
     }
 
     private void updateHostInfos() {
-        System.out.println("Update host: " + _targetHost);
+        System.out.println("Update Start host: " + _targetHost);
         long currentTs = System.currentTimeMillis();
         JsonObject infos = getHostInfo();
 

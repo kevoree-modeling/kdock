@@ -8,15 +8,23 @@ public class Runner {
 
     public static void main(String[] args) throws Exception {
 
-        int port = 8080;
         String storagePath = "kdock_data";
+        int port = 8080;
+
+        if(args.length > 0) {
+            port = Integer.parseInt(args[0]);
+            storagePath = args[1];
+        }
+
 
         LevelDBPlugin storage = new LevelDBPlugin(storagePath);
+        final int finalPort = port;
+        final String finalStoragePath = storagePath;
         storage.connect(throwable -> {
-            Log.info("KDock: Storage started in :{}", storagePath);
-            WebSocketGateway gateway = WebSocketGateway.expose(storage, port);
+            Log.info("KDock: Storage started in :{}", finalStoragePath);
+            WebSocketGateway gateway = WebSocketGateway.expose(storage, finalPort);
             gateway.start();
-            Log.info("KDock: WebSocket gateway started with port :{}", port);
+            Log.info("KDock: WebSocket gateway started with port :{}", finalPort);
         });
 
     }
