@@ -120,9 +120,20 @@
                         metricsDomPanel.appendChild(metricDomI);
                     }
 
-                    var metricDomTitle = document.createElement('span');
-                    metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' ' + metric.getValue();
-                    metricsDomPanel.appendChild(metricDomTitle);
+                    metric.getRelationByName("values", function(values){
+                        var metricDomTitle = document.createElement('span');
+
+                       if(values.length > 0) {
+                        metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' ' + values[0].getValue();
+                       }  else {
+                           metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' N/A';
+                       }
+
+                        metricsDomPanel.appendChild(metricDomTitle);
+                    });
+
+
+
 
                     if (metric.sizeOfMetrics() != 0) {
                         var subMetricsUlDom = document.createElement('ul');

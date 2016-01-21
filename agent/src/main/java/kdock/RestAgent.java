@@ -51,6 +51,7 @@ public class RestAgent {
                         updateHostInfos();
                     }
                 }, 1, 20, TimeUnit.SECONDS);
+
                 executor.scheduleAtFixedRate(new Runnable() {
                     @Override
                     public void run() {
@@ -61,7 +62,7 @@ public class RestAgent {
                             }
                         });
                     }
-                }, 10, 1, TimeUnit.SECONDS);
+                }, 2, 1, TimeUnit.SECONDS);
             }
         });
     }
@@ -122,26 +123,38 @@ public class RestAgent {
             metric.traversal().traverse(MetaMetric.REL_METRICS).withAttribute(MetaMetric.ATT_NAME, name).then(new KCallback<KObject[]>() {
                 @Override
                 public void on(KObject[] kObjects) {
-                    Metric m;
+                    final Metric[] m = new Metric[1];
                     try {
                         if (kObjects.length == 0) {
-                            m = model.createMetric(0, currentTs).setName(name);
-                            metric.addByName("metrics", m);
+                            m[0] = model.createMetric(0, currentTs).setName(name);
+                            metric.addByName("metrics", m[0]);
                         } else {
-                            m = (Metric) kObjects[0];
+                            m[0] = (Metric) kObjects[0];
                         }
 
                         if (json.get(name).isObject()) {
-                            updateSubMetrics(json.get(name).asObject(), m, currentTs);
+                            updateSubMetrics(json.get(name).asObject(), m[0], currentTs);
                         } else if (json.get(name).isArray()) {
-                            updateSubMetrics(json.get(name).asArray(), m, currentTs);
+                            updateSubMetrics(json.get(name).asArray(), m[0], currentTs);
                         } else {
-                            System.out.println("inserted value: '"+json.get(name).asDouble()+"' for metric " + name);
-                            m.setValue(json.get(name).asDouble());
+                            m[0].getValues(new KCallback<Value[]>() {
+                                @Override
+                                public void on(Value[] values) {
+                                    Value v;
+                                        if (values.length == 0) {
+                                            v = model.createValue(0, currentTs);
+                                            m[0].addByName("values", v);
+                                        } else {
+                                            v = values[0];
+                                        }
+                                    v.setValue(json.get(name).asDouble());
+                                    System.out.println("inserted value: '" + json.get(name).asDouble() + "' for metric " + name);
+                                }
+                            });
                         }
 
                     } catch (UnsupportedOperationException e) {
-                        System.err.println("Obj-> On '"+name+"' Could not convert attribute '" + name + "' to number: " + json.get(name));
+                        System.err.println("Obj-> On '" + name + "' Could not convert attribute '" + name + "' to number: " + json.get(name));
                     }
                 }
             });
@@ -169,7 +182,20 @@ public class RestAgent {
                             } else {
                                 m = (Metric) kObjects[0];
                             }
-                            m.setValue(val.asDouble());
+
+                            m.getValues(new KCallback<Value[]>() {
+                                @Override
+                                public void on(Value[] values) {
+                                    Value v;
+                                    if (values.length == 0) {
+                                        v = model.createValue(0, currentTs);
+                                        m.addByName("values", v);
+                                    } else {
+                                        v = values[0];
+                                    }
+                                    v.setValue(val.asDouble());
+                                }
+                            });
 
                         } catch (UnsupportedOperationException e) {
                             System.err.println("Array->Could not convert attribute '" + metric.getName() + "_" + finalI + "' to number: " + val);

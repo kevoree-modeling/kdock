@@ -11,6 +11,11 @@ class kdock.Container {
 
 class kdock.Metric {
     att name: String
-    att value: Continuous
+    rel values : kdock.Value
     rel metrics : kdock.Metric
 }
+
+class kdock.Value {
+    att value: Continuous with precision 1
+}
+
