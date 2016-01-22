@@ -38,7 +38,7 @@
         model.findAll(kdock.meta.MetaHost.getInstance(), 0, ctx.originTime(), function (hosts) {
             hosts.forEach(function (host) {
                 var hostDom = document.createElement('li');
-                $(hostDom).addClass("uk-nestable-item uk-parent");
+                $(hostDom).addClass("uk-nestable-item uk-parent uk-nestable-nodrag");
                 $("#content").append(hostDom);
 
                 var hostDomPanel = document.createElement('div');

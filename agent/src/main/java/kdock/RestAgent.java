@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class RestAgent {
 
-    private String _targetHost;
+    private String[] _targetsHosts;
     private String _kmfAddress;
 
     private KdockModel model;
@@ -31,8 +31,8 @@ public class RestAgent {
 
     private ScheduledExecutorService executor;
 
-    public RestAgent(String kmfAddress, String targetHost) {
-        _targetHost = targetHost;
+    public RestAgent(String kmfAddress, String... targetsHosts) {
+        _targetsHosts = targetsHosts;
         _kmfAddress = kmfAddress;
         executor = Executors.newSingleThreadScheduledExecutor();
     }
@@ -68,53 +68,56 @@ public class RestAgent {
     }
 
     private void updateHostInfos() {
-        System.out.println("Update Start host: " + _targetHost);
         long currentTs = System.currentTimeMillis();
-        JsonObject infos = getHostInfo();
+//        JsonObject infos = getHostInfo();
+
+        for(String host : _targetsHosts) {
+            System.out.println("Update Start host: " + host);
 
 
-        model.find(MetaHost.getInstance(), 0, currentTs, "name=" + infos.get("Name").asString(), new KCallback<KObject>() {
-            @Override
-            public void on(KObject kObject) {
-                Host h;
-                if (kObject == null) {
-                    System.out.println("Host not found");
-                    h = model.createHost(0, currentTs).setName(infos.get("Name").asString());
-                } else {
-                    h = (Host) kObject;
-                    System.out.println("Host: " + h);
-                }
+            JsonObject infos = getHostInfo(host);
+            model.find(MetaHost.getInstance(), 0, currentTs, "name=" + infos.get("Name").asString(), new KCallback<KObject>() {
+                @Override
+                public void on(KObject kObject) {
+                    Host h;
+                    if (kObject == null) {
+                        System.out.println("Host not found");
+                        h = model.createHost(0, currentTs).setName(infos.get("Name").asString());
+                    } else {
+                        h = (Host) kObject;
+                        System.out.println("Host: " + h);
+                    }
 
-                JsonArray containersInfo = getContainersInfo();
+                    JsonArray containersInfo = getContainersInfo(host);
 
-                for (JsonValue containerValue : containersInfo.values()) {
-                    JsonObject containerInfos = containerValue.asObject();
+                    for (JsonValue containerValue : containersInfo.values()) {
+                        JsonObject containerInfos = containerValue.asObject();
 
-                    h.traversal().traverse(MetaHost.REL_CONTAINERS).withAttribute(MetaContainer.ATT_ID, containerInfos.get("Id").asString()).then(new KCallback<KObject[]>() {
-                        @Override
-                        public void on(KObject[] kObjects) {
+                        h.traversal().traverse(MetaHost.REL_CONTAINERS).withAttribute(MetaContainer.ATT_ID, containerInfos.get("Id").asString()).then(new KCallback<KObject[]>() {
+                            @Override
+                            public void on(KObject[] kObjects) {
 
-                            Container container;
+                                Container container;
 
-                            if (kObjects.length == 0) {
-                                container = model.createContainer(0, currentTs).setId(containerInfos.get("Id").asString()).setName(containerInfos.get("Names").asArray().get(0).asString());
-                                h.addContainers(container);
-                            } else {
-                                container = (Container) kObjects[0];
+                                if (kObjects.length == 0) {
+                                    container = model.createContainer(0, currentTs).setId(containerInfos.get("Id").asString()).setName(containerInfos.get("Names").asArray().get(0).asString());
+                                    h.addContainers(container);
+                                } else {
+                                    container = (Container) kObjects[0];
+                                }
+
+                                JsonObject json = getContainerMetrics(host,container.getName());
+
+                                updateSubMetrics(json, container, currentTs);
+
                             }
 
-                            JsonObject json = getContainerMetrics(container.getName());
-
-                            updateSubMetrics(json, container, currentTs);
-
-                        }
-
-                    });
+                        });
+                    }
                 }
-            }
 
-        });
-
+            });
+        }
     }
 
     private void updateSubMetrics(JsonObject json, KObject metric, long currentTs) {
@@ -147,6 +150,7 @@ public class RestAgent {
                                         } else {
                                             v = values[0];
                                         }
+
                                     v.setValue(json.get(name).asDouble());
                                     System.out.println("inserted value: '" + json.get(name).asDouble() + "' for metric " + name);
                                 }
@@ -193,7 +197,9 @@ public class RestAgent {
                                     } else {
                                         v = values[0];
                                     }
-                                    v.setValue(val.asDouble());
+                                    double d = val.asDouble();
+                                    System.out.println("Double d = " + d);
+                                    v.setValue(1.518613963E9);
                                 }
                             });
 
@@ -207,17 +213,17 @@ public class RestAgent {
     }
 
 
-    private JsonObject getHostInfo() {
-        return getJsonObject(_targetHost + "/info");
+    private JsonObject getHostInfo(String host) {
+        return getJsonObject(host + "/info");
     }
 
 
-    private JsonArray getContainersInfo() {
-        return getJsonArray(_targetHost + "/containers/json");
+    private JsonArray getContainersInfo(String host) {
+        return getJsonArray(host + "/containers/json");
     }
 
-    private JsonObject getContainerMetrics(String name) {
-        return getJsonObject(_targetHost + "/containers" + name + "/stats?stream=0");
+    private JsonObject getContainerMetrics(String host, String name) {
+        return getJsonObject(host + "/containers" + name + "/stats?stream=0");
     }
 
     private JsonObject getJsonObject(String url_src) {
