@@ -9,7 +9,7 @@
     <description>Kevoree Docker</description>
 
     <properties>
-        <kmf.version>4.27.0</kmf.version>
+        <kmf.version>4.27.1-SNAPSHOT</kmf.version>
         <leveldb.plugin.version>4.27.0</leveldb.plugin.version>
         <log.version>1</log.version>
     </properties>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    @import url(http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:400,700);
+    @import url(http://square.github.io/cubism/style.css);
+</style>
+<script src="lib/model.js"></script>
+<script src="lib/plugin.websocket.js"></script>
+<script src="d3.min.js" charset="utf-8"></script>
+<script src="cubism.v1.min.js"></script>
+<div id="body">
+    <div id="graph">
+    </div>
+</div>
+
+
+<script>
+    var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
+    var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
+    model.connect(function () {
+        console.log("Dashboard connected!");
+        var context = model.createModelContext();
+        var date = new Date();
+        var current = date.getTime();
+        context.set(current, current, 0, 0);
+        feedD3(model, context);
+    });
+    function feedD3(model, ctx) {
+
+        model.traversal(0, ctx.originTime())
+                .traverseIndex(kdock.meta.MetaHost.getInstance().metaName(), null)
+                .traverse(kdock.meta.MetaHost.REL_CONTAINERS)
+                .traverse(kdock.meta.MetaContainer.REL_METRICS)
+                .then(function (metrics) {
+                    var context = cubism.context().size(1024);
+                    var horizon = context.horizon().extent([0, 2]);
+                    var metricNames = [];
+                    for (var metricI in metrics) {
+                        metricNames[metricI] = metrics[metricI].getName();
+                    }
+
+                    // define metric accessor
+                    function random_ma(name) {
+
+                        console.log(name);
+
+                        return context.metric(function (start, stop, step, callback) {
+                            var values = [];
+
+                            console.log(start);
+
+                            while (+start < +stop) {
+                                start = +start + step;
+                                values.push(Math.random());
+                            }
+                            callback(null, values);
+                        }, name);
+                    }
+
+                    // draw graph
+                    horizon.metric(random_ma);
+                    d3.select("#graph").selectAll(".horizon")
+                            .data(metricNames)
+                            .enter()
+                            .append("div")
+                            .attr("class", "horizon")
+                            .call(horizon);
+                    // set rule
+                    d3.select("#body").append("div")
+                            .attr("class", "rule")
+                            .call(context.rule());
+                    // set focus
+                    context.on("focus", function (i) {
+                        d3.selectAll(".value")
+                                .style("right", i == null ? null : context.size() - i + "px");
+                    });
+                    // set axis
+                    var axis = context.axis();
+                    d3.select("#graph").append("div").attr("class", "axis").append("g").call(axis);
+
+
+                });
+
+    }
+</script>
