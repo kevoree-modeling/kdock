@@ -17,6 +17,7 @@
 <script>
     var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
     var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
+    var context = cubism.context().size(50);
     model.connect(function () {
         console.log("Dashboard connected!");
         var context = model.createModelContext();
@@ -32,18 +33,17 @@
                 .traverse(kdock.meta.MetaHost.REL_CONTAINERS)
                 .traverse(kdock.meta.MetaContainer.REL_METRICS)
                 .then(function (metrics) {
-                    var context = cubism.context().size(1024);
+
                     var horizon = context.horizon().extent([0, 2]);
-                    /*
                     var metricNames = [];
                     for (var metricI in metrics) {
                         metricNames[metricI] = metrics[metricI].getName();
-                    }*/
+                    }
 
                     // define metric accessor
-                    function random_ma(met) {
+                    function random_ma(name) {
 
-                        console.log(met);
+                        console.log(name);
 
                         return context.metric(function (start, stop, step, callback) {
                             var values = [];
@@ -55,13 +55,13 @@
                                 values.push(Math.random());
                             }
                             callback(null, values);
-                        }, met.getName());
+                        }, name);
                     }
 
                     // draw graph
                     horizon.metric(random_ma);
                     d3.select("#graph").selectAll(".horizon")
-                            .data(metrics)
+                            .data(metricNames)
                             .enter()
                             .append("div")
                             .attr("class", "horizon")
@@ -82,5 +82,6 @@
 
                 });
 
+    }
     }
 </script>
