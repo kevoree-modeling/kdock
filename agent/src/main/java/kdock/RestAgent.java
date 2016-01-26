@@ -50,7 +50,7 @@ public class RestAgent {
                     public void run() {
                         updateHostInfos();
                     }
-                }, 1, 20, TimeUnit.SECONDS);
+                }, 1, 5, TimeUnit.SECONDS);
 
                 executor.scheduleAtFixedRate(new Runnable() {
                     @Override
@@ -62,7 +62,7 @@ public class RestAgent {
                             }
                         });
                     }
-                }, 2, 1, TimeUnit.SECONDS);
+                }, 3, 1, TimeUnit.SECONDS);
             }
         });
     }
@@ -148,7 +148,7 @@ public class RestAgent {
                                             v = values[0];
                                         }
                                     v.setValue(json.get(name).asDouble());
-                                    System.out.println("inserted value: '" + json.get(name).asDouble() + "' for metric " + name);
+                                   // System.out.println("inserted value: '" + json.get(name).asDouble() + "' for metric " + name);
                                 }
                             });
                         }
