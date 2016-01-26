@@ -48,7 +48,7 @@
 <script>
     var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
     var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
-    var context = cubism.context().size(1024);
+    var context = cubism.context().size(670).step(1000);
     model.connect(function () {
         console.log("Dashboard connected!");
         var context = model.createModelContext();
@@ -181,11 +181,13 @@
                                         });
                                     }
                                     defer.then(function(jumpedValues){
+                                        var lastValue = jumpedValues[0][0].getValue();
                                         var values = [];
                                         var i;
                                         for (i in jumpedValues) {
                                             if(jumpedValues[i] != null) {
-                                                values.push(jumpedValues[i][0].getValue());
+                                                values.push((jumpedValues[i][0].getValue()-lastValue)*1e-9);
+                                                lastValue = jumpedValues[i][0].getValue();
                                             } else {
                                                 values.push(null);
                                             }
