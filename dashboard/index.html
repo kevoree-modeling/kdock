@@ -30,11 +30,11 @@
     <script src="lib/plugin.websocket.js"></script>
 
 </head>
-<body style="width:100%; margin: 0px;">
+<body>
 
 
-<div style="display: block; width:100%">
-    <div class="uk-conatiner uk-container-center" style="display:inline-block;margin-right:50px;overflow: hidden">
+<div>
+    <div class="uk-conatiner uk-container-center">
         <ul class="uk-nestable" data-uk-nestable id='content'></ul>
     </div>
     <!--
@@ -49,7 +49,6 @@
     var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
     var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
     var context = cubism.context().size(1024);
-    var horizon = context.horizon().extent([0, 99999999999999999]);
     model.connect(function () {
         console.log("Dashboard connected!");
         var context = model.createModelContext();
@@ -63,7 +62,7 @@
         model.findAll(kdock.meta.MetaHost.getInstance(), 0, ctx.originTime(), function (hosts) {
             hosts.forEach(function (host) {
                 var hostDom = document.createElement('li');
-                $(hostDom).addClass("uk-nestable-item uk-parent");
+                $(hostDom).addClass("uk-nestable-item uk-parent uk-nestable-nodrag");
                 $("#content").append(hostDom);
 
                 var hostDomPanel = document.createElement('div');
@@ -96,7 +95,7 @@
                 containers.forEach(function (container) {
 
                     var containerDom = document.createElement('li');
-                    $(containerDom).addClass("uk-nestable-item uk-parent");
+                    $(containerDom).addClass("uk-nestable-item uk-parent uk-nestable-nodrag");
                     containersUlDom.appendChild(containerDom);
 
                     var containerDomPanel = document.createElement('div');
@@ -130,7 +129,7 @@
                 metrics.forEach(function (metric) {
 
                     var metricDom = document.createElement('li');
-                    $(metricDom).addClass("uk-nestable-item uk-parent");
+                    $(metricDom).addClass("uk-nestable-item uk-parent uk-nestable-nodrag");
                     //$(metricDom).addClass("uk-collapsed");
                     metricsUlDom.appendChild(metricDom);
 
@@ -165,7 +164,8 @@
 
 
 
-
+                            var horizon = context.horizon();
+                            horizon.title(metric.getName());
 
                             function kmfAccessor (met) {
                                 return context.metric(function (start, stop, step, callback) {
@@ -176,7 +176,7 @@
                                         met.jump(start,function(jumpedElement){
                                            // console.log(jumpedElement)
                                             if(jumpedElement != null) {
-                                                jumpedElement.getValues(defer.waitResult.bind(defer));
+                                                jumpedElement.getValues(defer.waitResult());
                                             }
                                         });
                                     }
@@ -185,11 +185,12 @@
                                         var i;
                                         for (i in jumpedValues) {
                                             if(jumpedValues[i] != null) {
-                                                values.push(jumpedValues[i].getValue());
+                                                values.push(jumpedValues[i][0].getValue());
                                             } else {
                                                 values.push(null);
                                             }
                                         }
+                                        //console.log(values);
                                         callback(null, values);
                                     });
 
@@ -206,10 +207,13 @@
                                     .attr("class", "horizon")
                                     .call(horizon);
 
+                            /*
                             // set rule
                             d3.select(graphBodyDom).append("div")
                                     .attr("class", "rule")
                                     .call(context.rule());
+                            */
+
                             // set focus
                             context.on("focus", function (i) {
                                 d3.selectAll(".value")
