@@ -49,6 +49,7 @@
     var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
     var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
     var context = cubism.context().size(1024);
+    var horizon = context.horizon().extent([0, 99999999999999999]);
     model.connect(function () {
         console.log("Dashboard connected!");
         var context = model.createModelContext();
@@ -164,19 +165,18 @@
 
 
 
-                            var horizon = context.horizon().extent([0, 99999999999999999]);
+
 
                             function kmfAccessor (met) {
-                                console.log("Metric:");
                                 return context.metric(function (start, stop, step, callback) {
 
                                     var defer = model.defer();
                                     while (+start < +stop) {
                                         start = +start + step;
                                         met.jump(start,function(jumpedElement){
-                                            console.log(jumpedElement)
+                                           // console.log(jumpedElement)
                                             if(jumpedElement != null) {
-                                                jumpedElement.getValues(defer.waitResult);
+                                                jumpedElement.getValues(defer.waitResult.bind(defer));
                                             }
                                         });
                                     }
@@ -199,7 +199,7 @@
                             horizon.metric(kmfAccessor);
                             var tab = [];
                             tab.push(metric);
-                            d3.select(graphDom)
+                            d3.select(graphDom).selectAll(".horizon")
                                     .data(tab)
                                     .enter()
                                     .append("div")
