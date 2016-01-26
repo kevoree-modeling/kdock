@@ -15,16 +15,40 @@
     <link rel="stylesheet" href="uikit-2.24.3/css/components/nestable.min.css"/>
     <script src="uikit-2.24.3/js/components/nestable.js"></script>
 
+    <style>
+        @import url(http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:400,700);
+        @import url(http://square.github.io/cubism/style.css);
+    </style>
+
     <script src="lib/model.js"></script>
     <script src="lib/plugin.websocket.js"></script>
+    <script src="d3.min.js" charset="utf-8"></script>
+    <script src="cubism.v1.min.js"></script>
+
+
+    <script src="lib/model.js"></script>
+    <script src="lib/plugin.websocket.js"></script>
+
 </head>
-<body>
-<div class="uk-conatiner uk-container-center">
-    <ul class="uk-nestable" data-uk-nestable id='content'></ul>
+<body style="width:100%; margin: 0px;">
+
+
+<div style="display: block; width:100%">
+    <div class="uk-conatiner uk-container-center" style="display:inline-block;margin-right:50px;overflow: hidden">
+        <ul class="uk-nestable" data-uk-nestable id='content'></ul>
+    </div>
+    <!--
+    <div style="display:inline-block;position: absolute;top:0px;">
+        <div id="graph"></div>
+    </div>
+    -->
 </div>
+
+
 <script>
     var wsClient = new org.kevoree.modeling.plugin.WebSocketClientPlugin("ws://localhost:8080/default");
     var model = new kdock.KdockModel(org.kevoree.modeling.memory.manager.DataManagerBuilder.create().withContentDeliveryDriver(wsClient).build());
+    var context = cubism.context().size(1024);
     model.connect(function () {
         console.log("Dashboard connected!");
         var context = model.createModelContext();
@@ -120,19 +144,85 @@
                         metricsDomPanel.appendChild(metricDomI);
                     }
 
-                    metric.getRelationByName("values", function(values){
+                    metric.getRelationByName("values", function (values) {
                         var metricDomTitle = document.createElement('span');
 
-                       if(values.length > 0) {
-                        metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' ' + values[0].getValue();
-                       }  else {
-                           metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' N/A';
-                       }
+                        if (values.length > 0) {
+                            metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' ' + values[0].getValue();
+
+                        } else {
+                            metricDomTitle.innerHTML = "&nbsp;&nbsp; " + metric.getName() + ' N/A';
+                        }
 
                         metricsDomPanel.appendChild(metricDomTitle);
+
+                        if(values.length > 0) {
+                            var graphBodyDom = document.createElement("div");
+                            metricsDomPanel.appendChild(graphBodyDom);
+                            var graphDom = document.createElement("div");
+                            graphBodyDom.appendChild(graphDom);
+
+
+
+                            var horizon = context.horizon().extent([0, 99999999999999999]);
+
+                            function kmfAccessor (met) {
+                                console.log("Metric:");
+                                return context.metric(function (start, stop, step, callback) {
+
+                                    var defer = model.defer();
+                                    while (+start < +stop) {
+                                        start = +start + step;
+                                        met.jump(start,function(jumpedElement){
+                                            console.log(jumpedElement)
+                                            if(jumpedElement != null) {
+                                                jumpedElement.getValues(defer.waitResult);
+                                            }
+                                        });
+                                    }
+                                    defer.then(function(jumpedValues){
+                                        var values = [];
+                                        var i;
+                                        for (i in jumpedValues) {
+                                            if(jumpedValues[i] != null) {
+                                                values.push(jumpedValues[i].getValue());
+                                            } else {
+                                                values.push(null);
+                                            }
+                                        }
+                                        callback(null, values);
+                                    });
+
+                                }, met.getName());
+                            };
+
+                            horizon.metric(kmfAccessor);
+                            var tab = [];
+                            tab.push(metric);
+                            d3.select(graphDom)
+                                    .data(tab)
+                                    .enter()
+                                    .append("div")
+                                    .attr("class", "horizon")
+                                    .call(horizon);
+
+                            // set rule
+                            d3.select(graphBodyDom).append("div")
+                                    .attr("class", "rule")
+                                    .call(context.rule());
+                            // set focus
+                            context.on("focus", function (i) {
+                                d3.selectAll(".value")
+                                        .style("right", i == null ? null : context.size() - i + "px");
+                            });
+                            // set axis
+                            var axis = context.axis();
+                            d3.select(graphDom).append("div").attr("class", "axis").append("g").call(axis);
+                            /*
+                            */
+
+                        }
                     });
-
-
 
 
                     if (metric.sizeOfMetrics() != 0) {
@@ -147,6 +237,7 @@
         }
 
     }
+
 </script>
 
 
