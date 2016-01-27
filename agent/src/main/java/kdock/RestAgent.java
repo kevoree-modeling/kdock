@@ -127,7 +127,7 @@ public class RestAgent {
                 @Override
                 public void on(KObject[] kObjects) {
                     final Metric[] m = new Metric[1];
-                    try {
+
                         if (kObjects.length == 0) {
                             m[0] = model.createMetric(0, currentTs).setName(name);
                             metric.addByName("metrics", m[0]);
@@ -150,16 +150,17 @@ public class RestAgent {
                                         } else {
                                             v = values[0];
                                         }
-
-                                    v.setValue(json.get(name).asDouble());
+                                    try {
+                                        v.setValue(json.get(name).asDouble());
+                                    } catch (UnsupportedOperationException e) {
+                                        System.err.println("Obj-> On '" + name + "' Could not convert attribute '" + name + "' to number: " + json.get(name));
+                                    }
                                    // System.out.println("inserted value: '" + json.get(name).asDouble() + "' for metric " + name);
                                 }
                             });
                         }
 
-                    } catch (UnsupportedOperationException e) {
-                        System.err.println("Obj-> On '" + name + "' Could not convert attribute '" + name + "' to number: " + json.get(name));
-                    }
+
                 }
             });
         }
